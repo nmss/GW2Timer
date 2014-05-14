@@ -41,6 +41,7 @@ body {
 	font-weight: bold;
 }
 
+#character-select,
 #lang-select {
 	height: 100%;
 	font-size: 0.8em;

@@ -104,7 +104,9 @@ Array.prototype.clean = function(deleteValue) {
 };
 
 function wbdone(wbval) {
-	var wbd = getCookie('wbdone').split('/');
+	var character = getCookie('character');
+	var cookie = 'wbdone' + (character === 'all' ? '' : '.'+character);
+	var wbd = getCookie(cookie).split('/');
 	var wbset = $.inArray( wbval, wbd );
 	if (wbset > -1) {
 		wbd.splice(wbset, 1);
@@ -122,11 +124,26 @@ function wbdone(wbval) {
 	expire.setUTCHours(0);
 	expire.setUTCMinutes(0);
 	expire.setUTCSeconds(0);
-	setCookie("wbdone", wbval, expire.toUTCString());
+	setCookie(cookie, wbval, expire.toUTCString());
 }
 
 function wbdonecheck(wbval) {
-	var wbd = getCookie('wbdone').split('/');
+	var character = getCookie('character');
+	var wbd;
+	if (character === 'all') {
+		wbd = '';
+		var characters = JSON.parse(getCookie('characters'));
+		for (var c in characters) {
+			if (c === '_') {
+				continue;
+			}
+			wbd += getCookie('wbdone.'+c)+'/';
+		}
+		wbd = $.unique(wbd.split('/').clean(''));
+	} else {
+		var cookie = 'wbdone' + (character === 'all' ? '' : '.'+character);
+		wbd = getCookie(cookie).split('/');
+	}
 	var wbset = $.inArray( wbval, wbd );
 	if (wbset > -1) {
 		return true;
@@ -185,10 +202,36 @@ function refreshlang() {
 	getLang(clang?clang:"en");
 }
 
+function refreshCharacter() {
+	var characters = getCookie('characters');
+	if (characters === "") {
+		characters = {'_':0};
+		// set cookie to ensure the cookie will be usable
+		var expire = new Date();
+		expire.setFullYear(expire.getFullYear() + 10);
+		setCookie('characters', JSON.stringify(characters), expire);
+	} else {
+		characters = JSON.parse(characters);
+	}
+	var character = getCookie('character');
+	var selected = characters[character] !== null ? character : 'all';
+	$('#character-select').empty().append($("<option>").text('All characters').attr("value", 'all'));
+	$('#character-select').append($("<option>").text('------').attr("disabled", true));
+	for (var c in characters) {
+		if (c === '_') {
+			continue;
+		}
+		$('#character-select').append($("<option>").text(characters[c]).attr("value", c));
+	}
+	//$('#character-select').append($("<option>").text('------').attr("disabled", true));
+	$('option[value='+character+']', '#character-select').attr("selected", true);
+}
+
 $( document ).ready(function() {
 	$("#nowtimezone").append(" (UTC+"+getTimezone()+")");
 
 	refreshlang();
+	refreshCharacter();
 	refreshall();
 
 	setInterval(function() {
@@ -205,6 +248,13 @@ $( document ).ready(function() {
 		var expire = new Date();
 		expire.setFullYear(now.getFullYear() + 10);
 		setCookie("lang", $("#lang-select option:selected").val(), expire );
+		refreshall();
+	});
+
+	$("#character-select").change(function() {
+		var expire = new Date();
+		expire.setFullYear(expire.getFullYear() + 10);
+		setCookie("character", $("#character-select").val(), expire);
 		refreshall();
 	});
 
